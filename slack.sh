@@ -44,7 +44,7 @@ if [ "${item_id}" != "" ]; then
     
     rm -f "${chart_cookie}_${timestamp}"
 
-    # if triger url is empty then we link to the graph with the item_id
+    # if trigger url is empty then we link to the graph with the item_id
     if [ "${trigger_url}" == "" ]; then
         trigger_url="${zabbix_baseurl}/history.php?action=showgraph&itemid=${item_id}"
     fi

@@ -6,7 +6,6 @@ slack_username='Zabbix'
 channel="$1"
 title="$2"
 params="$3"
-emoji=':ghost:'
 timeout="5"
 cmd_curl="/usr/bin/curl"
 cmd_wget="/usr/bin/wget"
@@ -22,6 +21,12 @@ chart_height=390
 chart_baseurl="${zabbix_baseurl}/slack_charts"
 chart_basedir="/tmp/slack_charts"
 chart_cookie="/tmp/zcookies.txt"
+
+# create chart_basedir
+if [ ! -d "${chart_basedir}" ]
+then
+    mkdir "${chart_basedir}"
+fi
 
 # set params
 host="`echo \"${params}\" | grep 'HOST: ' | awk -F'HOST: ' '{print $2}' | sed -e 's///g'`"
@@ -39,13 +44,13 @@ if [ "${item_id}" != "" ]; then
     timestamp=$(date +%s)
 
     ${cmd_wget} --save-cookies="${chart_cookie}_${timestamp}" --keep-session-cookies --post-data "name=${zabbix_username}&password=${zabbix_password}&enter=Sign+in" -O /dev/null -q "${zabbix_baseurl}/index.php?login=1"
-    ${cmd_wget} --load-cookies="${chart_cookie}_${timestamp}"  -O "${chart_basedir}/graph-${item_id}-${timestamp}.png" -q "${zabbix_baseurl}/chart.php?&itemids=${item_id}&width=${chart_width}&period=${chart_period}"
-    chart_url="${chart_baseurl}/graph-${item_id}-${timestamp}.png"
+    ${cmd_wget} --load-cookies="${chart_cookie}_${timestamp}"  -O "${chart_basedir}/graph-${item_id}-${timestamp}.png" -q "${zabbix_baseurl}/chart.php?&itemid=${item_id}&width=${chart_width}&period=${chart_period}"
+    
     rm -f ${chart_cookie}_${timestamp}
 
     # if triger url is empty then we link to the graph with the item_id
     if [ "${trigger_url}" == "" ]; then
-        trigger_url="${zabbix_baseurl}/history.php?action=showgraph&itemids=${item_id}"
+        trigger_url="${zabbix_baseurl}/history.php?action=showgraph&itemid=${item_id}"
     fi
 fi
 
@@ -78,8 +83,6 @@ fi
 # set payload
 payload="payload={
   \"channel\": \"${channel}\",
-  \"username\": \"${slack_username}\",
-  \"icon_emoji\": \"${emoji}\",
   \"attachments\": [
     {
       \"fallback\": \"Date / Time: ${datetime} - ${title}\",
@@ -115,4 +118,5 @@ payload="payload={
 
 # send to slack
 ${cmd_curl} -m ${timeout} --data-urlencode "${payload}" "${slack_url}"
-
+${cmd_curl} -F file="@${chart_basedir}/graph-${item_id}-${timestamp}.png" -F token="${slack_token}" -F channels="${channel}" -F title="${title}" https://slack.com/api/files.upload
+rm -f ${chart_basedir}/graph-${item_id}-${timestamp}.png

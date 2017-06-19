@@ -1,28 +1,20 @@
 #!/bin/bash -x
+# shellcheck disable=SC1091
 
 # config
-slack_url='https://hooks.slack.com/services/XXX/XXXX/XXXXX'
 channel="$1"
 title="$2"
 params="$3"
-timeout="5"
-cmd_curl="/usr/bin/curl"
-cmd_wget="/usr/bin/wget"
 
-zabbix_baseurl="http://zabbix.example.com"
-zabbix_username="yourzabbixusername"
-zabbix_password="zabbixpassword"
+SCRIPTS_DIR=$(cd "$(dirname "$0")" && pwd) || exit 1
 
-# chart settings
-chart_period=3600
-chart_width=1280
-chart_basedir="/tmp/slack_charts"
-chart_cookie="/tmp/zcookies.txt"
+# shellcheck source=${SCRIPTS_DIR}/slack.conf.example
+. "${SCRIPTS_DIR}/slack.conf" || exit 1
 
-# create chart_basedir
-if [ ! -d "${chart_basedir}" ]
+# create CHART_BASEDIR
+if [ ! -d "${CHART_BASEDIR}" ]
 then
-    mkdir "${chart_basedir}"
+    mkdir "${CHART_BASEDIR}"
 fi
 
 # set params
@@ -39,14 +31,14 @@ item_id=$(echo "${params}" | grep 'ITEM_ID: ' | awk -F'ITEM_ID: ' '{print $2}' |
 if [ "${item_id}" != "" ]; then
     timestamp=$(date +%s)
 
-    ${cmd_wget} --save-cookies="${chart_cookie}_${timestamp}" --keep-session-cookies --post-data "name=${zabbix_username}&password=${zabbix_password}&enter=Sign+in" -O /dev/null -q "${zabbix_baseurl}/index.php?login=1"
-    ${cmd_wget} --load-cookies="${chart_cookie}_${timestamp}"  -O "${chart_basedir}/graph-${item_id}-${timestamp}.png" -q "${zabbix_baseurl}/chart.php?&itemid=${item_id}&width=${chart_width}&period=${chart_period}"
+    ${CMD_WGET} --save-cookies="${CHART_COOKIE}_${timestamp}" --keep-session-cookies --post-data "name=${ZABBIX_USERNAME}&password=${ZABBIX_PASSWORD}&enter=Sign+in" -O /dev/null -q "${ZABBIX_BASEURL}/index.php?login=1"
+    ${CMD_WGET} --load-cookies="${CHART_COOKIE}_${timestamp}"  -O "${CHART_BASEDIR}/graph-${item_id}-${timestamp}.png" -q "${ZABBIX_BASEURL}/chart.php?&itemid=${item_id}&width=${CHART_WIDTH}&period=${CHART_PERIOD}"
     
-    rm -f "${chart_cookie}_${timestamp}"
+    rm -f "${CHART_COOKIE}_${timestamp}"
 
     # if trigger url is empty then we link to the graph with the item_id
     if [ "${trigger_url}" == "" ]; then
-        trigger_url="${zabbix_baseurl}/history.php?action=showgraph&itemid=${item_id}"
+        trigger_url="${ZABBIX_BASEURL}/history.php?action=showgraph&itemid=${item_id}"
     fi
 fi
 
@@ -112,6 +104,6 @@ payload="payload={
 }"
 
 # send to slack
-${cmd_curl} -m ${timeout} --data-urlencode "${payload}" "${slack_url}"
-${cmd_curl} -F file="@${chart_basedir}/graph-${item_id}-${timestamp}.png" -F token="${slack_token}" -F channels="${channel}" -F title="${title}" https://slack.com/api/files.upload
-rm -f "${chart_basedir}/graph-${item_id}-${timestamp}.png"
+${CMD_CURL} -m "${TIMEOUT}" --data-urlencode "${payload}" "${SLACK_URL}"
+${CMD_CURL} -F file="@${CHART_BASEDIR}/graph-${item_id}-${timestamp}.png" -F token="${SLACK_TOKEN}" -F channels="${channel}" -F title="${title}" https://slack.com/api/files.upload
+rm -f "${CHART_BASEDIR}/graph-${item_id}-${timestamp}.png"

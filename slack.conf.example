@@ -1,0 +1,15 @@
+SLACK_URL='https://hooks.slack.com/services/XXX/XXXX/XXXXX'
+SLACK_TOKEN='YOUR SLACK TOKEN'
+
+ZABBIX_BASEURL="http://zabbix.example.com"
+ZABBIX_USERNAME="yourzabbixusername"
+ZABBIX_PASSWORD="zabbixpassword"
+
+TIMEOUT="5"
+CMD_CURL="/usr/bin/curl"
+CMD_WGET="/usr/bin/wget"
+
+CHART_PERIOD=3600
+CHART_WIDTH=1280
+CHART_BASEDIR="/tmp/slack_charts"
+CHART_COOKIE="/tmp/zcookies.txt"
